@@ -1,187 +1,301 @@
+// src/components/dial/OmnitrixDial.tsx
+// FULL FILE — transform sequence + timer ring + SFX (optional).
+
 "use client";
 
-import { useEffect, useRef } from "react";
-import { motion, useMotionValue, useTransform } from "framer-motion";
-import useOmnitrixStore from "@/lib/store";
-import { dispatchEvent } from "@/lib/fsm";
-import Glow from "../fx/Glow";
-import { Alien } from "@/types/alien";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { useOmnitrix } from "@/lib/omni/useOmnitrix";
+import { useSfx } from "@/components/fx/Sfx";
 
-const OmnitrixDial = () => {
-  const { aliens, currentState, selectedAlienId } = useOmnitrixStore();
-  const rotation = useMotionValue(0);
-  const x = useTransform(rotation, [0, 360], [0, 1]);
-  const scale = useTransform(x, [-0.5, 0.5], [0.95, 1.05]);
+type Alien = { id: string; name: string; icon?: string };
+type Props = { aliens: Alien[]; onConfirm?: (id: string) => void };
 
-  const dialRef = useRef<HTMLDivElement>(null);
+const SIZE = 480;
+const R = { outer: 200, bezel: 172, ring: 150, inner: 118, oled: 86 };
 
+export default function OmnitrixDial({ aliens, onConfirm }: Props) {
+  const [idx, setIdx] = useState(0);
+  const angle = useMotionValue(0);
+
+  const prev = () => setIdx((i) => (i - 1 + aliens.length) % aliens.length);
+  const next = () => setIdx((i) => (i + 1) % aliens.length);
+
+  // selection rotation
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (currentState !== "browsing") return;
+    const per = 360 / Math.max(aliens.length || 1, 1);
+    animate(angle, idx * per, { duration: 0.38, ease: [0.22, 0.61, 0.36, 1] });
+  }, [idx, aliens.length, angle]);
 
-      switch (e.key) {
-        case "ArrowLeft":
-          e.preventDefault();
-          rotateDial("left");
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          rotateDial("right");
-          break;
-        case "Enter":
-          e.preventDefault();
-          dispatchEvent({ type: "CONFIRM_SELECTION" });
-          break;
-        case "Escape":
-          e.preventDefault();
-          dispatchEvent({ type: "DEACTIVATE_DIAL" });
-          break;
-      }
+  // FSM for transform
+  const omni = useOmnitrix({
+    chargeMs: 1300,
+    transformedMs: 1800,
+    cooldownMs: 1000,
+  });
+
+  // SFX (optional)
+  const sfx = useSfx({
+    charge: "/sfx/charge.mp3",
+    transform: "/sfx/transform.mp3",
+    ready: "/sfx/ready.mp3",
+  });
+
+  // sounds on phase edges
+  useEffect(() => {
+    if (omni.state === "charging") sfx.play("charge");
+    if (omni.state === "transformed") sfx.play("transform");
+    if (omni.state === "browsing") sfx.play("ready");
+  }, [omni.state]);
+
+  // keyboard
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (omni.isBusy) return;
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+      if (e.key === "Enter") handleTransform();
     };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [omni.isBusy]);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentState]);
-
-  const rotateDial = (direction: "left" | "right") => {
-    const step = 360 / aliens.length;
-    const current = rotation.get();
-    const newRotation = direction === "left" ? current + step : current - step;
-    rotation.set(newRotation % 360);
-
-    const currentIndex = aliens.findIndex(
-      (a: Alien) => a.id === selectedAlienId
-    );
-    const newIndex =
-      direction === "left"
-        ? (currentIndex + 1) % aliens.length
-        : (currentIndex - 1 + aliens.length) % aliens.length;
-    const newAlienId = aliens[newIndex]?.id || aliens[0].id;
-    dispatchEvent({ type: "ROTATE_DIAL", alienId: newAlienId });
+  const handleTransform = () => {
+    if (omni.isBusy) return;
+    onConfirm?.(aliens[idx]?.id);
+    omni.trigger();
   };
 
-  if (currentState === "idle") {
-    return (
-      <Glow intensity="soft" color="cyan">
-        <motion.div
-          className="relative w-64 h-64 rounded-full bg-omnitrix-black border-4 border-neon-cyan breathing-glow cursor-pointer"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => dispatchEvent({ type: "ACTIVATE_DIAL" })}
-        >
-          {/* Outer Ring */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-neon-cyan to-neon-lime opacity-20" />
+  const ticks = useMemo(
+    () =>
+      Array.from({ length: 72 }, (_, i) => ({
+        a: (i / 72) * 360,
+        big: i % 6 === 0,
+      })),
+    []
+  );
 
-          {/* Inner Safety Ring */}
-          <div className="absolute inset-8 rounded-full bg-omnitrix-graphite border-2 border-gold-bezel" />
+  const rotation = useTransform(angle, (a) => `rotate(${a}deg)`);
+  const current = aliens[idx];
 
-          {/* Center OLED */}
-          <div className="absolute inset-16 rounded-full bg-black border-2 border-neon-green omnitrix-oled flex items-center justify-center">
-            <div className="text-neon-green font-orbitron font-bold text-xl">
-              OMNITRIX
-            </div>
-          </div>
+  // hourglass geometry
+  const g = R.oled - 22;
+  const curve = g * 0.9;
+  const hourglassGreen =
+    `M 0 ${-g} C ${curve} ${-g * 0.4}, ${curve} ${g * 0.4}, 0 ${g} ` +
+    `C ${-curve} ${g * 0.4}, ${-curve} ${-g * 0.4}, 0 ${-g} Z`;
+  const hourglassCut =
+    `M 0 ${-g} C ${-curve} ${-g * 0.4}, ${-curve} ${g * 0.4}, 0 ${g} ` +
+    `C ${curve} ${g * 0.4}, ${curve} ${-g * 0.4}, 0 ${-g} Z`;
 
-          {/* Notch */}
-          <div className="notch" />
-        </motion.div>
-      </Glow>
-    );
-  }
+  // animation helpers
+  const chargeGlow = omni.state === "charging" ? 1 + omni.progress * 0.5 : 1;
+  const ringSpin = omni.state === "charging" ? omni.progress * 180 : 0;
+  const flash = omni.state === "transformed" ? 1 - omni.progress : 0;
 
   return (
-    <Glow intensity="strong" color="green">
-      <motion.div
-        className="relative w-64 h-64 rounded-full bg-omnitrix-black border-4 border-neon-green pulse-glow cursor-pointer"
-        style={{ scale }}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onDoubleClick={() => dispatchEvent({ type: "DEACTIVATE_DIAL" })}
+    <div className="relative w-[480px] h-[480px] select-none">
+      {/* aura */}
+      <div
+        className="absolute inset-0 rounded-full blur-3xl"
+        style={{
+          boxShadow: `0 0 ${140 * chargeGlow}px ${
+            40 * chargeGlow
+          }px rgba(0,255,102,.22)`,
+        }}
+      />
+
+      <motion.svg
+        width={SIZE}
+        height={SIZE}
+        viewBox={[-SIZE / 2, -SIZE / 2, SIZE, SIZE].join(" ")}
+        className="rounded-full"
+        aria-label="Omnitrix dial"
+        role="group"
       >
-        {/* Outer Ring with Gradient */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-neon-green via-neon-lime to-neon-cyan" />
+        <defs>
+          <radialGradient id="outerGlow" r="85%">
+            <stop offset="0%" stopColor="var(--color-neon-lime)" />
+            <stop offset="68%" stopColor="var(--color-neon-green)" />
+            <stop offset="100%" stopColor="#0b0b0b" />
+          </radialGradient>
+          <linearGradient id="ceramic" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#dfe3ea" />
+          </linearGradient>
+          <radialGradient id="darkRing" r="85%">
+            <stop offset="0%" stopColor="#14221a" />
+            <stop offset="100%" stopColor="#0a1410" />
+          </radialGradient>
+          <linearGradient id="tickGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffe890" />
+            <stop offset="100%" stopColor="#ffc107" />
+          </linearGradient>
+        </defs>
 
-        {/* Tick Marks */}
-        {Array.from({ length: 72 }, (_, i) => {
-          const angle = (i / 72) * 360;
-          const isThick = i % 5 === 0;
-          const thickness = isThick ? "thick" : "thin";
+        {/* outer ring */}
+        <circle r={R.outer} fill="url(#outerGlow)" />
 
-          return (
-            <motion.div
-              key={i}
-              className={`tick-mark ${thickness}`}
-              style={{
-                left: "50%",
-                top: "4px",
-                transform: `translateX(-50%) rotate(${angle}deg)`,
-              }}
+        {/* lugs */}
+        {([0, 90, 180, 270] as const).map((a) => (
+          <g key={a} transform={`rotate(${a}) translate(0, -${R.outer + 8})`}>
+            <rect
+              x={-18}
+              y={-36}
+              width={36}
+              height={52}
+              rx={8}
+              fill="#0a0f0c"
+              stroke="#0c140f"
+              strokeWidth="2"
             />
-          );
-        })}
+            <circle cx={0} cy={-18} r={3.5} fill="#262c28" />
+            <circle cx={0} cy={10} r={3.5} fill="#262c28" />
+          </g>
+        ))}
 
-        {/* Inner Safety Ring */}
-        <div className="absolute inset-8 rounded-full bg-omnitrix-graphite border-2 border-gold-bezel shadow-inner" />
+        {/* bezel */}
+        <circle
+          r={R.bezel}
+          fill="url(#ceramic)"
+          stroke="#0f1215"
+          strokeWidth="2"
+        />
 
-        {/* Rotating Dial */}
-        <motion.div
-          className="absolute inset-8 rounded-full flex items-center justify-center"
-          style={{ rotate: rotation }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+        {/* notch */}
+        <polygon
+          points={`0,-${R.outer + 10} -9,-${R.outer - 12} 9,-${R.outer - 12}`}
+          fill="var(--color-neon-lime)"
+          stroke="rgba(0,0,0,.55)"
+          strokeWidth="2"
+        />
+
+        {/* tick ring */}
+        <circle
+          r={R.ring}
+          fill="url(#darkRing)"
+          stroke="rgba(0,255,110,.35)"
+          strokeWidth="2"
+        />
+
+        <motion.g
+          style={{ transformOrigin: "0 0", transformBox: "fill-box" }}
+          animate={{ rotate: ringSpin }}
+          transition={{ type: "tween", ease: "linear", duration: 0 }}
         >
-          {/* Alien Silhouettes */}
-          {aliens.map((alien: Alien, index: number) => (
-            <motion.div
-              key={alien.id}
-              className={`absolute w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-all ${
-                selectedAlienId === alien.id
-                  ? "ring-2 ring-gold-bezel"
-                  : "opacity-60"
-              }`}
-              style={{
-                transform: `rotate(${
-                  index * (360 / aliens.length)
-                }deg) translateY(-60px) rotate(-${
-                  index * (360 / aliens.length)
-                }deg)`,
-              }}
-              whileHover={{ scale: 1.2 }}
-              onClick={() =>
-                dispatchEvent({ type: "ROTATE_DIAL", alienId: alien.id })
-              }
-            >
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-neon-cyan to-neon-lime flex items-center justify-center text-black font-bold text-xs shadow-neon-glow">
-                {alien.name.charAt(0)}
-              </div>
-            </motion.div>
+          {ticks.map((t, i) => (
+            <line
+              key={i}
+              x1="0"
+              y1={-R.ring + 4}
+              x2="0"
+              y2={-R.ring + (t.big ? 28 : 18)}
+              stroke={t.big ? "url(#tickGrad)" : "#ffe289"}
+              strokeWidth={t.big ? 3 : 1.6}
+              transform={`rotate(${t.a})`}
+              opacity={t.big ? 0.95 : 0.72}
+            />
           ))}
-        </motion.div>
+        </motion.g>
 
-        {/* Center OLED */}
-        <div className="absolute inset-16 rounded-full bg-black border-2 border-neon-green omnitrix-oled flex flex-col items-center justify-center relative z-10">
-          <div className="text-neon-green font-orbitron font-bold text-sm mb-1">
-            ACTIVE
-          </div>
-          <div className="text-xs opacity-75">SELECT ALIEN</div>
-        </div>
+        {/* inner ring */}
+        <circle
+          r={R.inner}
+          fill="#0d1914"
+          stroke="rgba(0,255,110,.25)"
+          strokeWidth="2"
+        />
 
-        {/* Confirm Button */}
-        {currentState === "browsing" && (
-          <motion.button
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-gold-bezel rounded-full flex items-center justify-center shadow-lg ring-2 ring-neon-lime"
-            onClick={() => dispatchEvent({ type: "CONFIRM_SELECTION" })}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+        {/* OLED */}
+        <g>
+          <circle r={R.oled} fill="#0b1511" className="inner-shadow" />
+          <foreignObject
+            x={-R.oled}
+            y={-R.oled}
+            width={R.oled * 2}
+            height={R.oled * 2}
           >
-            <div className="text-black font-bold text-sm">OK</div>
-          </motion.button>
+            <div className="scanlines w-full h-full rounded-full" />
+          </foreignObject>
+        </g>
+
+        {/* hourglass core */}
+        <g>
+          <circle
+            r={R.oled - 10}
+            fill="none"
+            stroke={`rgba(0,255,110,${0.35 + omni.progress * 0.4})`}
+            strokeWidth="4"
+          />
+          <motion.path
+            d={hourglassGreen}
+            fill="rgba(0,255,102,.9)"
+            animate={{
+              scale: omni.state === "charging" ? 1 + omni.progress * 0.05 : 1,
+            }}
+            transform-origin="0 0"
+          />
+          <path d={hourglassCut} fill="#0b1511" />
+          <circle
+            r={R.oled - 10}
+            fill="none"
+            stroke="rgba(0,0,0,.65)"
+            strokeWidth="2"
+          />
+        </g>
+
+        {/* flash on transform */}
+        {flash > 0 && (
+          <circle r={R.outer} fill={`rgba(255,255,255,${0.25 * flash})`} />
         )}
 
-        {/* Notch */}
-        <div className="notch" />
-      </motion.div>
-    </Glow>
-  );
-};
+        {/* breathing highlight rim */}
+        <circle
+          r={R.bezel - 6}
+          fill="none"
+          stroke="var(--color-neon-green)"
+          strokeOpacity=".45"
+          strokeWidth="2"
+          className="pulse"
+        />
+      </motion.svg>
 
-export default OmnitrixDial;
+      {/* controls */}
+      <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-3">
+        <button
+          onClick={prev}
+          disabled={omni.isBusy}
+          className="px-3 py-2 rounded-xl bg-[var(--color-omni-graphite)]/90 enabled:hover:scale-105 transition disabled:opacity-50"
+          title="Previous (←)"
+          aria-label="Previous"
+        >
+          ◀
+        </button>
+
+        <button
+          onClick={handleTransform}
+          disabled={omni.isBusy}
+          className="px-6 py-2 rounded-xl bg-[var(--color-neon-green)] text-black font-semibold shadow-[var(--shadow-glow)] enabled:hover:scale-105 active:scale-95 transition disabled:opacity-60"
+          title="Transform (Enter)"
+          aria-label="Transform"
+        >
+          {omni.state === "browsing" && "Transform"}
+          {omni.state === "charging" &&
+            `Charging ${Math.round(omni.progress * 100)}%`}
+          {omni.state === "transformed" && "Transformed!"}
+          {omni.state === "cooldown" && "Cooling..."}
+        </button>
+
+        <button
+          onClick={next}
+          disabled={omni.isBusy}
+          className="px-3 py-2 rounded-xl bg-[var(--color-omni-graphite)]/90 enabled:hover:scale-105 transition disabled:opacity-50"
+          title="Next (→)"
+          aria-label="Next"
+        >
+          ▶
+        </button>
+      </div>
+    </div>
+  );
+}

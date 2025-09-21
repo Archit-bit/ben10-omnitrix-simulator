@@ -1,15 +1,16 @@
-@import "tailwindcss";
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --omnitrix-black: #0a0a0a;
+  --omnitrix-graphite: #1a1a1a;
+  --neon-green: #00ff41;
+  --neon-lime: #39ff14;
+  --neon-cyan: #00ffff;
+  --gold-bezel: #ffd700;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +23,110 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Orbitron", monospace;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Carbon Fiber Background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.15) 1px,
+    transparent 0
+  );
+  background-size: 50px 50px;
+  z-index: -1;
+}
+
+/* Scanlines */
+.omnitrix-oled::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 65, 0.03) 2px,
+    rgba(0, 255, 65, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Pulse Glow Animation */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green),
+      0 0 15px var(--neon-green);
+  }
+  50% {
+    box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green),
+      0 0 30px var(--neon-green);
+  }
+  100% {
+    box-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green),
+      0 0 15px var(--neon-green);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite alternate;
+}
+
+/* Breathing Glow for Idle State */
+@keyframes breathing-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px var(--neon-cyan);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+  }
+}
+
+.breathing-glow {
+  animation: breathing-glow 3s ease-in-out infinite;
+}
+
+/* Tick Marks for Dial */
+.tick-mark {
+  position: absolute;
+  background: var(--gold-bezel);
+  border-radius: 1px;
+}
+
+.tick-mark.thick {
+  width: 2px;
+  height: 8px;
+}
+
+.tick-mark.thin {
+  width: 1px;
+  height: 4px;
+}
+
+/* Notch Selector */
+.notch {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--neon-lime);
+  z-index: 10;
 }

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "heatblast",
+    "name": "Heatblast",
+    "description": "A Pyronite from the planet Pyros, Heatblast can generate and manipulate intense heat and fire.",
+    "image": "/aliens/heatblast.png",
+    "abilities": ["Pyrokinesis", "Heat Absorption", "Flight"],
+    "species": "Pyronite",
+    "homeworld": "Pyros",
+    "transformationDuration": 60
+  },
+  {
+    "id": "fourarms",
+    "name": "Four Arms",
+    "description": "A Tetramand from the planet Khoros, Four Arms possesses incredible superhuman strength and durability.",
+    "image": "/aliens/fourarms.png",
+    "abilities": ["Super Strength", "Enhanced Durability", "Shockwaves"],
+    "species": "Tetramand",
+    "homeworld": "Khoros",
+    "transformationDuration": 90
+  },
+  {
+    "id": "diamondhead",
+    "name": "Diamondhead",
+    "description": "A Petrosapien from the planet Petropia, Diamondhead can manipulate his crystalline body into various forms.",
+    "image": "/aliens/diamondhead.png",
+    "abilities": ["Crystal Manipulation", "Regeneration", "Sharp Projectiles"],
+    "species": "Petrosapien",
+    "homeworld": "Petropia",
+    "transformationDuration": 75
+  },
+  {
+    "id": "xlr8",
+    "name": "XLR8",
+    "description": "A Kineceleran from the planet Kinet",
+    "image": "/aliens/xlr8.png",
+    "abilities": ["Super Speed", "Enhanced Reflexes", "Vortex Creation"],
+    "species": "Kineceleran",
+    "homeworld": "Kinet",
+    "transformationDuration": 45
+  },
+  {
+    "id": "wildmutt",
+    "name": "Wildmutt",
+    "description": "A Vulpimancer from the planet Vulpin, Wildmutt has enhanced senses and powerful physical abilities.",
+    "image": "/aliens/wildmutt.png",
+    "abilities": ["Enhanced Senses", "Super Strength", "Sharp Claws"],
+    "species": "Vulpimancer",
+    "homeworld": "Vulpin",
+    "transformationDuration": 50
+  },
+  {
+    "id": "upgrade",
+    "name": "Upgrade",
+    "description": "A Galvanic Mechamorph from the planet Galvan B, Upgrade can merge with technology and control machinery.",
+    "image": "/aliens/upgrade.png",
+    "abilities": ["Technopathy", "Shape-Shifting", "Energy Blasts"],
+    "species": "Galvanic Mechamorph",
+    "homeworld": "Galvan B",
+    "transformationDuration": 70
+  },
+  {
+    "id": "ghostfreak",
+    "name": "Ghostfreak",
+    "description": "An Ectonurite from the planet Anur Phaetos, Ghostfreak can phase through matter and possess others.",
+    "image": "/aliens/ghostfreak.png",
+    "abilities": ["Intangibility", "Possession", "Invisibility"],
+    "species": "Ectonurite",
+    "homeworld": "Anur Phaetos",
+    "transformationDuration": 80
+  }
+]

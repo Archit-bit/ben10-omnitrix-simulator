@@ -1,132 +1,95 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "tailwindcss";
 
-:root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --omnitrix-black: #0a0a0a;
-  --omnitrix-graphite: #1a1a1a;
-  --neon-green: #00ff41;
-  --neon-lime: #39ff14;
-  --neon-cyan: #00ffff;
-  --gold-bezel: #ffd700;
+@theme {
+  --color-omnitrix-black: #0a0a0a;
+  --color-omnitrix-graphite: #1a1a1a;
+  --color-neon-green: #00ff41;
+  --color-neon-lime: #39ff14;
+  --color-neon-cyan: #00ffff;
+  --color-gold-bezel: #ffd700;
+  --shadow-neon-glow: 0 0 5px var(--color-neon-green),
+    0 0 10px var(--color-neon-green), 0 0 15px var(--color-neon-green),
+    0 0 20px var(--color-neon-green);
+  --shadow-neon-glow-strong: 0 0 10px var(--color-neon-green),
+    0 0 20px var(--color-neon-green), 0 0 30px var(--color-neon-green),
+    0 0 40px var(--color-neon-green);
+  --shadow-neon-cyan-glow: 0 0 5px var(--color-neon-cyan),
+    0 0 10px var(--color-neon-cyan), 0 0 15px var(--color-neon-cyan);
+  --shadow-inner: inset 0 0 10px rgba(0, 0, 0, 0.5);
+  --font-orbitron: "Orbitron", monospace;
+  --animate-scanline: scanline 0.1s linear infinite;
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite alternate;
+  --animate-breathing: breathing 3s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-[var(--color-omnitrix-black)] text-foreground font-orbitron m-0 p-0 overflow-hidden;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Orbitron", monospace;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
-/* Carbon Fiber Background */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    rgba(255, 255, 255, 0.15) 1px,
-    transparent 0
-  );
-  background-size: 50px 50px;
-  z-index: -1;
-}
-
-/* Scanlines */
-.omnitrix-oled::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 255, 65, 0.03) 2px,
-    rgba(0, 255, 65, 0.03) 4px
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Pulse Glow Animation */
-@keyframes pulse-glow {
-  0% {
-    box-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green),
-      0 0 15px var(--neon-green);
+@layer utilities {
+  .carbon-fiber::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      rgba(255, 255, 255, 0.15) 1px,
+      transparent 0
+    );
+    background-size: 50px 50px;
+    z-index: -1;
   }
-  50% {
-    box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green),
-      0 0 30px var(--neon-green);
+
+  .omnitrix-oled::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 65, 0.03) 2px,
+      rgba(0, 255, 65, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
   }
-  100% {
-    box-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-green),
-      0 0 15px var(--neon-green);
+
+  @keyframes scanline {
+    0% {
+      box-shadow: inset 0 0 0 0 rgba(0, 255, 65, 0.1);
+    }
+    100% {
+      box-shadow: inset 0 100% 0 0 rgba(0, 255, 65, 0.1);
+    }
   }
-}
 
-.pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite alternate;
-}
-
-/* Breathing Glow for Idle State */
-@keyframes breathing-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 10px var(--neon-cyan);
+  @keyframes pulse-glow {
+    0% {
+      box-shadow: 0 0 5px var(--color-neon-green);
+    }
+    100% {
+      box-shadow: 0 0 20px var(--color-neon-green),
+        0 0 30px var(--color-neon-green);
+    }
   }
-  50% {
-    box-shadow: 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+
+  @keyframes breathing {
+    0%,
+    100% {
+      box-shadow: 0 0 10px var(--color-neon-cyan);
+    }
+    50% {
+      box-shadow: 0 0 20px var(--color-neon-cyan),
+        0 0 30px var(--color-neon-cyan);
+    }
   }
-}
-
-.breathing-glow {
-  animation: breathing-glow 3s ease-in-out infinite;
-}
-
-/* Tick Marks for Dial */
-.tick-mark {
-  position: absolute;
-  background: var(--gold-bezel);
-  border-radius: 1px;
-}
-
-.tick-mark.thick {
-  width: 2px;
-  height: 8px;
-}
-
-.tick-mark.thin {
-  width: 1px;
-  height: 4px;
-}
-
-/* Notch Selector */
-.notch {
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid var(--neon-lime);
-  z-index: 10;
 }

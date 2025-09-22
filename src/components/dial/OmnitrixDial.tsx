@@ -1,6 +1,3 @@
-// src/components/dial/OmnitrixDial.tsx
-// FULL FILE — transform sequence + timer ring + SFX (optional).
-
 "use client";
 
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
@@ -230,10 +227,10 @@ export default function OmnitrixDial({ aliens, onConfirm }: Props) {
           <motion.path
             d={hourglassGreen}
             fill="rgba(0,255,102,.9)"
+            style={{ transformOrigin: "0px 0px" }}
             animate={{
               scale: omni.state === "charging" ? 1 + omni.progress * 0.05 : 1,
             }}
-            transform-origin="0 0"
           />
           <path d={hourglassCut} fill="#0b1511" />
           <circle
